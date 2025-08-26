@@ -128,18 +128,14 @@ export default function LoginPage() {
       
       console.log('localStorage保存成功')
       
-      // 设置超时保护，确保页面能够跳转
-      const timeoutId = setTimeout(() => {
-        console.log('超时保护触发，强制跳转到问卷页面')
-        setIsLoading(false)
-        router.push('/questionnaire?role=student')
-      }, 3000) // 3秒超时
-      
-      // 立即跳转到问卷页面，不等待数据库保存
+      // 立即跳转到问卷页面
       console.log('准备跳转到问卷页面')
-      clearTimeout(timeoutId)
       setIsLoading(false)
-      router.push('/questionnaire?role=student')
+      
+      // 使用setTimeout确保状态更新完成后再跳转
+      setTimeout(() => {
+        router.push('/questionnaire?role=student')
+      }, 100)
       
       // 异步保存到数据库，不阻塞用户体验
       databaseService.saveUser(userInfo)
