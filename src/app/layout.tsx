@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import Navigation from '@/components/Navigation'
+import { Suspense } from 'react'
+import Navigation from '../components/Navigation'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -19,7 +21,9 @@ export default function RootLayout({
     <html lang="zh">
       <body className={inter.className}>
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-          <Navigation />
+          <Suspense fallback={<div className="h-16 bg-white shadow-lg border-b"></div>}>
+            <Navigation />
+          </Suspense>
           <main>
             {children}
           </main>
