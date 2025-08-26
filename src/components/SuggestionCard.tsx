@@ -28,8 +28,17 @@ const categoryColors = {
 };
 
 export default function SuggestionCard({ suggestion, index }: SuggestionCardProps) {
-  const IconComponent = categoryIcons[suggestion.category as keyof typeof categoryIcons] || Lightbulb;
-  const colorClass = categoryColors[suggestion.category as keyof typeof categoryColors] || 'bg-gray-100 text-gray-800';
+  // 根据建议的维度或类型来确定分类
+  const getCategory = (suggestion: Suggestion) => {
+    if (suggestion.dimension === 'autonomy') return '自我激励';
+    if (suggestion.dimension === 'competence') return '技能提升';
+    if (suggestion.dimension === 'engagement') return '学习策略';
+    return '学习策略'; // 默认分类
+  };
+  
+  const category = getCategory(suggestion);
+  const IconComponent = categoryIcons[category as keyof typeof categoryIcons] || Lightbulb;
+  const colorClass = categoryColors[category as keyof typeof categoryColors] || 'bg-gray-100 text-gray-800';
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
@@ -42,7 +51,7 @@ export default function SuggestionCard({ suggestion, index }: SuggestionCardProp
           <div>
             <h3 className="font-semibold text-gray-800">{suggestion.title}</h3>
             <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${colorClass}`}>
-              {suggestion.category}
+              {category}
             </span>
           </div>
         </div>
