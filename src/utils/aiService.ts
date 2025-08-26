@@ -92,6 +92,14 @@ Continue the conversation naturally. Always prioritize listening, empathy, and m
     const competenceDiff = Math.abs(studentScores.competence - parentScores.competence);
     const engagementDiff = Math.abs(studentScores.engagement - parentScores.engagement);
     
+    // 差异程度判断函数
+    const getDifferenceLevel = (diff: number): string => {
+      if (diff <= 2) return '几乎没有差异';
+      if (diff <= 4) return '差异较小';
+      if (diff <= 6) return '差异适中';
+      return '差异较大';
+    };
+    
     // 确定主要动机类型
     const highestScore = Math.max(studentScores.autonomy, studentScores.competence, studentScores.engagement);
     let motivationType = '平衡型';
@@ -115,14 +123,14 @@ Continue the conversation naturally. Always prioritize listening, empathy, and m
 ### 2. 学生与家长认知差异分析 (Key Perception Differences)
 
 **认知差异程度：**
-- 自主性认知差异：${autonomyDiff}分 ${autonomyDiff > 5 ? '(差异较大)' : '(差异适中)'}
-- 胜任感认知差异：${competenceDiff}分 ${competenceDiff > 5 ? '(差异较大)' : '(差异适中)'}
-- 参与度认知差异：${engagementDiff}分 ${engagementDiff > 5 ? '(差异较大)' : '(差异适中)'}
+- 自主性认知差异：${autonomyDiff}分 (${getDifferenceLevel(autonomyDiff)})
+- 胜任感认知差异：${competenceDiff}分 (${getDifferenceLevel(competenceDiff)})
+- 参与度认知差异：${engagementDiff}分 (${getDifferenceLevel(engagementDiff)})
 
 **差异分析：**
-${autonomyDiff > 5 ? '• 自主性方面存在显著认知差异，可能反映家长与学生对独立学习能力的理解不同\n' : ''}
-${competenceDiff > 5 ? '• 胜任感方面存在显著认知差异，建议关注学生的自信心状态\n' : ''}
-${engagementDiff > 5 ? '• 参与度方面存在显著认知差异，需要观察学生的实际学习投入情况\n' : ''}
+${autonomyDiff > 4 ? '• 自主性方面存在认知差异，可能反映家长与学生对独立学习能力的理解不同\n' : autonomyDiff <= 2 ? '• 自主性方面家长与学生认知基本一致，这是良好的沟通基础\n' : ''}
+${competenceDiff > 4 ? '• 胜任感方面存在认知差异，建议关注学生的自信心状态\n' : competenceDiff <= 2 ? '• 胜任感方面家长与学生认知基本一致，有利于建立学习信心\n' : ''}
+${engagementDiff > 4 ? '• 参与度方面存在认知差异，需要观察学生的实际学习投入情况\n' : engagementDiff <= 2 ? '• 参与度方面家长与学生认知基本一致，说明学习状态比较透明\n' : ''}
 
 ### 3. 基于差异程度的ACE提升建议 (Specific ACE Enhancement Recommendations)
 
@@ -188,7 +196,7 @@ ${engagementDiff > 5 ? '• 参与度方面存在显著认知差异，需要观�
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`
         },
-        signal: AbortSignal.timeout(30000), // 30秒超时
+        signal: AbortSignal.timeout(20000), // 20秒超时
         body: JSON.stringify({
           model: 'deepseek-chat',
           messages: [
@@ -201,8 +209,8 @@ ${engagementDiff > 5 ? '• 参与度方面存在显著认知差异，需要观�
               content: userMessage
             }
           ],
-          max_tokens: 1500,
-          temperature: 0.7
+          max_tokens: 1000,
+          temperature: 0.5
         })
       });
 
@@ -238,7 +246,7 @@ ${engagementDiff > 5 ? '• 参与度方面存在显著认知差异，需要观�
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`
         },
-        signal: AbortSignal.timeout(30000), // 30秒超时
+        signal: AbortSignal.timeout(15000), // 15秒超时
         body: JSON.stringify({
           model: 'deepseek-chat',
           messages: [
@@ -248,8 +256,8 @@ ${engagementDiff > 5 ? '• 参与度方面存在显著认知差异，需要观�
             },
             ...messages
           ],
-          max_tokens: 800,
-          temperature: 0.8
+          max_tokens: 500,
+          temperature: 0.6
         })
       });
 
