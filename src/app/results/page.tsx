@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import LoadingSpinner from '../../components/LoadingSpinner'
 import { Download, MessageCircle, RotateCcw, Share2, Brain, User, ArrowRight, Target, TrendingUp, Users, Eye, BarChart3, FileText, Lightbulb } from 'lucide-react'
 import { Radar, RadarChart as RechartsRadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend } from 'recharts'
 import RadarChart from '../../components/RadarChart'
@@ -51,7 +52,7 @@ interface CombinedResults {
   timestamp: string
 }
 
-export default function ResultsPage() {
+function ResultsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [result, setResult] = useState<QuestionnaireResult | null>(null)
@@ -971,5 +972,13 @@ export default function ResultsPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <ResultsContent />
+    </Suspense>
   )
 }
