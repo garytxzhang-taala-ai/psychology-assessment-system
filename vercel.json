@@ -1,13 +1,3 @@
 {
-  "version": 2,
-  "name": "psychology-assessment",
-  "env": {
-    "OPENAI_API_KEY": "@openai-api-key",
-    "OPENAI_BASE_URL": "@openai-base-url"
-  },
-  "functions": {
-    "src/app/api/**/*.ts": {
-      "maxDuration": 60
-    }
-  }
+  "name": "psychology-assessment"
 }
