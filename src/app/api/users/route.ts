@@ -1,38 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 
-// 数据文件路径
-const DATA_DIR = path.join(process.cwd(), 'data');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
-
-// 确保数据目录存在
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-}
+// 内存存储（仅用于演示，生产环境应使用数据库）
+let usersData: any[] = [];
 
 // 读取用户数据
 function readUsers() {
-  ensureDataDir();
-  if (!fs.existsSync(USERS_FILE)) {
-    return [];
-  }
-  try {
-    const data = fs.readFileSync(USERS_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('读取用户数据失败:', error);
-    return [];
-  }
+  return usersData;
 }
 
 // 写入用户数据
 function writeUsers(users: any[]) {
-  ensureDataDir();
   try {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+    usersData = users;
     return true;
   } catch (error) {
     console.error('写入用户数据失败:', error);

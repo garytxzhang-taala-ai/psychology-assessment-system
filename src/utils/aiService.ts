@@ -21,8 +21,8 @@ interface ChatMessage {
 }
 
 class AIService {
-  private apiKey = 'sk-29c306bada2f48b8bb34ef53d97081aa';
-  private baseUrl = 'https://api.deepseek.com/v1/chat/completions';
+  private apiKey = process.env.DEEPSEEK_API_KEY || '';
+  private baseUrl = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1/chat/completions';
 
   // 专家评价生成的系统提示词
   private expertEvaluationPrompt = `你是Jin Qi，一位资深的教育心理学专家，专门研究学生学习动机和认知发展。请基于以下数据为学生提供专业的心理评估和建议。
