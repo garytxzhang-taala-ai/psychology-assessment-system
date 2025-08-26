@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
 import { aceQuestions, parentQuestions, calculateACEScores } from '../../data/questions'
@@ -11,7 +11,7 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 import { databaseService } from '../../utils/database'
 import { generateReportId } from '../../utils/idGenerator'
 
-export default function QuestionnairePage() {
+function QuestionnaireContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const role = searchParams.get('role') as 'student' | 'parent'
@@ -330,5 +330,13 @@ export default function QuestionnairePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function QuestionnairePage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <QuestionnaireContent />
+    </Suspense>
   )
 }
