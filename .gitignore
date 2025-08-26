@@ -127,4 +127,3 @@ $RECYCLE.BIN/
 # Project specific
 data/users.json
 *.command
-node_modules
