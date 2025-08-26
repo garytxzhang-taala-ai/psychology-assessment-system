@@ -128,21 +128,34 @@ export default function LoginPage() {
       
       console.log('localStorage保存成功')
       
-      // 同时保存到数据库
-      const dbResult = await databaseService.saveUser(userInfo)
-      console.log('数据库保存结果:', dbResult)
-      if (!dbResult.success) {
-        console.warn('数据库保存失败:', dbResult.error)
-        // 即使数据库保存失败，也继续流程，因为已保存到localStorage
-      }
+      // 设置超时保护，确保页面能够跳转
+      const timeoutId = setTimeout(() => {
+        console.log('超时保护触发，强制跳转到问卷页面')
+        setIsLoading(false)
+        router.push('/questionnaire?role=student')
+      }, 3000) // 3秒超时
       
+      // 立即跳转到问卷页面，不等待数据库保存
       console.log('准备跳转到问卷页面')
-      // 跳转到学生问卷页面
+      clearTimeout(timeoutId)
+      setIsLoading(false)
       router.push('/questionnaire?role=student')
+      
+      // 异步保存到数据库，不阻塞用户体验
+      databaseService.saveUser(userInfo)
+        .then(dbResult => {
+          console.log('数据库保存结果:', dbResult)
+          if (!dbResult.success) {
+            console.warn('数据库保存失败:', dbResult.error)
+          }
+        })
+        .catch(error => {
+          console.error('数据库保存异常:', error)
+        })
+      
     } catch (error) {
       console.error('登录过程出错:', error)
       setErrors({ general: '信息保存失败，请重试' })
-    } finally {
       setIsLoading(false)
     }
   }
