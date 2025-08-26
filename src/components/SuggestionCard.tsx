@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Suggestion } from '@/types';
+import { Suggestion } from '../types';
 import { Lightbulb, Target, Users, BookOpen, Zap, Heart } from 'lucide-react';
 
 interface SuggestionCardProps {
@@ -65,20 +65,17 @@ export default function SuggestionCard({ suggestion, index }: SuggestionCardProp
         {suggestion.content}
       </p>
 
-      {/* 实施步骤 */}
-      {suggestion.steps && suggestion.steps.length > 0 && (
+      {/* 关键词标签 */}
+      {suggestion.keywords && suggestion.keywords.length > 0 && (
         <div className="mb-4">
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">实施步骤：</h4>
-          <ol className="text-xs text-gray-600 space-y-1">
-            {suggestion.steps.map((step, stepIndex) => (
-              <li key={stepIndex} className="flex items-start">
-                <span className="bg-gray-200 text-gray-700 rounded-full w-4 h-4 flex items-center justify-center text-xs font-medium mr-2 mt-0.5 flex-shrink-0">
-                  {stepIndex + 1}
-                </span>
-                <span>{step}</span>
-              </li>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">关键词：</h4>
+          <div className="flex flex-wrap gap-1">
+            {suggestion.keywords.map((keyword, keywordIndex) => (
+              <span key={keywordIndex} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                {keyword}
+              </span>
             ))}
-          </ol>
+          </div>
         </div>
       )}
 
@@ -100,7 +97,7 @@ export default function SuggestionCard({ suggestion, index }: SuggestionCardProp
           </div>
         </div>
         <span className="text-xs text-gray-400">
-          {suggestion.targetDimension && `针对：${suggestion.targetDimension}`}
+          {suggestion.dimension && `针对：${suggestion.dimension}`}
         </span>
       </div>
     </div>
