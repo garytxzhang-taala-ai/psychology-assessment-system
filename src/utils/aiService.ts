@@ -196,7 +196,7 @@ ${engagementDiff > 4 ? '• 参与度方面存在认知差异，需要观察学�
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`
         },
-        signal: AbortSignal.timeout(20000), // 20秒超时
+        signal: AbortSignal.timeout(10000), // 10秒超时，减少等待时间
         body: JSON.stringify({
           model: 'deepseek-chat',
           messages: [
@@ -301,7 +301,7 @@ ${engagementDiff > 4 ? '• 参与度方面存在认知差异，需要观察学�
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`
         },
-        signal: AbortSignal.timeout(15000), // 15秒超时
+        signal: AbortSignal.timeout(8000), // 8秒超时，减少等待时间
         body: JSON.stringify({
           model: 'deepseek-chat',
           messages: [
@@ -317,7 +317,7 @@ ${engagementDiff > 4 ? '• 参与度方面存在认知差异，需要观察学�
       });
 
       if (!response.ok) {
-        console.error(`API请求失败: ${response.status}`);
+        console.error(`DeepSeek API请求失败: ${response.status} ${response.statusText}`);
         // 只在API真正不可用时使用备用回复
         return this.generateFallbackChatResponse(messages, studentContext);
       }
@@ -332,7 +332,11 @@ ${engagementDiff > 4 ? '• 参与度方面存在认知差异，需要观察学�
       
       return aiResponse;
     } catch (error) {
-      console.error('AI聊天连接失败:', error);
+      if (error.name === 'AbortError') {
+        console.error('DeepSeek API请求超时（8秒）');
+      } else {
+        console.error('DeepSeek API连接失败:', error.message || error);
+      }
       // 只在网络错误或其他异常时使用备用回复
       return this.generateFallbackChatResponse(messages, studentContext);
     }
