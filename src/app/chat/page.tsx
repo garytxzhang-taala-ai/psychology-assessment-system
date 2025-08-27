@@ -89,11 +89,16 @@ export default function ChatPage() {
     setIsLoading(true)
     
     try {
+      // 创建AbortController用于超时控制
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15秒超时
+      
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
         body: JSON.stringify({
           messages: [...messages, userMessage].map(msg => ({
             role: msg.role === 'assistant' ? 'assistant' : 'user',
@@ -108,6 +113,8 @@ export default function ChatPage() {
           } : null
         }),
       })
+      
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         throw new Error('网络请求失败')
@@ -128,10 +135,20 @@ export default function ChatPage() {
       }
     } catch (error) {
       console.error('发送消息失败:', error)
+      let errorContent = '抱歉，我现在无法回复。请稍后再试。'
+      
+      if (error.name === 'AbortError') {
+        errorContent = '请求超时，AI服务可能正在处理中。请稍后重试或刷新页面。'
+      } else if (error.message?.includes('Failed to fetch')) {
+        errorContent = '网络连接异常，请检查网络状态后重试。如果问题持续，请刷新页面。'
+      } else if (error.message?.includes('网络请求失败')) {
+        errorContent = 'AI服务暂时不可用，正在为您提供备用回复。如需更精准指导，请稍后重试。'
+      }
+      
       const errorMessage: ChatMessage = {
          id: (Date.now() + 1).toString(),
          role: 'assistant',
-         content: '抱歉，我现在无法回复。请稍后再试。',
+         content: errorContent,
          timestamp: new Date().toISOString()
        }
       setMessages(prev => [...prev, errorMessage])
