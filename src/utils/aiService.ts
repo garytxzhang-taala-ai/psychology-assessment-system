@@ -228,6 +228,53 @@ ${engagementDiff > 4 ? '• 参与度方面存在认知差异，需要观察学�
   }
 
   /**
+   * 生成备用聊天回复（当API不可用时使用）
+   */
+  private generateFallbackChatResponse(messages: ChatMessage[], studentContext?: any): string {
+    const lastMessage = messages[messages.length - 1]?.content || '';
+    
+    // 基于学生背景的个性化回复
+    if (studentContext) {
+      const motivationType = studentContext.motivationType?.name || '';
+      const scores = studentContext.scores || {};
+      
+      // 根据动机类型提供建议
+      if (motivationType.includes('梦想者')) {
+        return '作为梦想者类型的学习者，你有着丰富的想象力！我建议你将大目标分解为具体的小步骤，这样更容易实现。你最近有什么学习目标想要实现吗？';
+      } else if (motivationType.includes('成就者')) {
+        return '成就者类型的你注重结果和成功，这是很好的动力源泉！建议设定具体、可衡量的学习目标。你想在哪个学科或技能上取得突破呢？';
+      } else if (motivationType.includes('探索者')) {
+        return '探索者类型的你对新知识充满好奇，这是学习的宝贵品质！建议你保持开放的心态，多尝试不同的学习方法。最近有什么新领域让你感兴趣吗？';
+      }
+    }
+    
+    // 关键词匹配回复
+    const keywords = {
+      '学习方法': '有效的学习方法因人而异，重要的是找到适合自己的方式。你可以尝试番茄工作法、思维导图或费曼学习法。',
+      '动机': '学习动机是推动学习的内在力量。内在动机比外在动机更持久，培养对学习本身的兴趣很重要。',
+      '目标': '明确的目标是学习成功的关键。建议使用SMART原则：具体、可衡量、可实现、相关性、时限性。',
+      '困难': '遇到学习困难是正常的，这正是成长的机会。试着将大问题分解为小问题，一步步解决。',
+      '兴趣': '兴趣是最好的老师！试着找到学习内容与你个人兴趣的连接点，这会让学习变得更有趣。'
+    };
+    
+    for (const [keyword, response] of Object.entries(keywords)) {
+      if (lastMessage.includes(keyword)) {
+        return response;
+      }
+    }
+    
+    // 默认鼓励性回复
+    const defaultResponses = [
+      '这是一个很好的问题！每个人的学习方式都是独特的，重要的是找到适合自己的方法。',
+      '学习是一个持续的过程，保持耐心和坚持是成功的关键。你已经在正确的道路上了！',
+      '你可以尝试将学习内容与自己的兴趣联系起来，这样会更有动力。有什么特别感兴趣的领域吗？',
+      '记住，小步骤的积累会带来大的改变。每天进步一点点就很棒了！'
+    ];
+    
+    return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+  }
+
+  /**
    * AI聊天机器人对话
    */
   async chatWithAI(messages: ChatMessage[], studentContext?: any): Promise<string> {
@@ -235,7 +282,7 @@ ${engagementDiff > 4 ? '• 参与度方面存在认知差异，需要观察学�
       // 构建上下文信息
       let contextMessage = '';
       if (studentContext) {
-        contextMessage = `\n\n学生背景信息：\n- 姓名：${studentContext.name || ''}\n- ACE得分：自主性${studentContext.autonomy || 0}分，胜任感${studentContext.competence || 0}分，参与度${studentContext.engagement || 0}分\n- 动机类型：${studentContext.motivationType || ''}\n\n请基于这些信息进行个性化指导。`;
+        contextMessage = `\n\n学生背景信息：\n- 姓名：${studentContext.name || ''}\n- ACE得分：自主性${studentContext.scores?.autonomy || 0}分，胜任感${studentContext.scores?.competence || 0}分，参与度${studentContext.scores?.engagement || 0}分\n- 动机类型：${studentContext.motivationType?.name || ''}\n\n请基于这些信息进行个性化指导。`;
       }
 
       const systemMessage = this.chatbotPrompt + contextMessage;
@@ -268,16 +315,9 @@ ${engagementDiff > 4 ? '• 参与度方面存在认知差异，需要观察学�
       const result = await response.json();
       return result.choices[0]?.message?.content || '抱歉，我现在无法回复，请稍后重试。';
     } catch (error) {
-      console.error('AI聊天失败:', error);
-      if (error instanceof Error) {
-        if (error.name === 'AbortError' || error.message.includes('timeout')) {
-          return '网络连接超时，请检查网络连接后重试。';
-        }
-        if (error.message.includes('fetch failed') || error.message.includes('ENOTFOUND')) {
-          return 'AI服务暂时不可用，请稍后重试。';
-        }
-      }
-      return '抱歉，我现在遇到了一些技术问题，请稍后重试。如果问题持续，请联系技术支持。';
+      console.error('AI聊天失败，使用备用回复:', error);
+      // 当API不可用时，返回基于规则的智能回复
+      return this.generateFallbackChatResponse(messages, studentContext);
     }
   }
 
