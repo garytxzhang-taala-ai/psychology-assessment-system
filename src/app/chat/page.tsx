@@ -136,13 +136,15 @@ export default function ChatPage() {
     } catch (error) {
       console.error('发送消息失败:', error)
       let errorContent = '抱歉，我现在无法回复。请稍后再试。'
-      
-      if (error.name === 'AbortError') {
-        errorContent = '请求超时，AI服务可能正在处理中。请稍后重试或刷新页面。'
-      } else if (error.message?.includes('Failed to fetch')) {
-        errorContent = '网络连接异常，请检查网络状态后重试。如果问题持续，请刷新页面。'
-      } else if (error.message?.includes('网络请求失败')) {
-        errorContent = 'AI服务暂时不可用，正在为您提供备用回复。如需更精准指导，请稍后重试。'
+
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorContent = '请求超时，AI服务可能正在处理中。请稍后重试或刷新页面.'
+        } else if (error.message?.includes('Failed to fetch')) {
+          errorContent = '网络连接异常，请检查网络状态后重试。如果问题持续，请刷新页面。'
+        } else if (error.message?.includes('网络请求失败')) {
+          errorContent = '服务暂时不可用，正在使用备用回复。如需完整AI分析，请稍后重试。'
+        }
       }
       
       const errorMessage: ChatMessage = {
