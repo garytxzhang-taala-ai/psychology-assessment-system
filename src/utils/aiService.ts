@@ -332,10 +332,10 @@ ${engagementDiff > 4 ? '• 参与度方面存在认知差异，需要观察学�
       
       return aiResponse;
     } catch (error) {
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         console.error('DeepSeek API请求超时（8秒）');
       } else {
-        console.error('DeepSeek API连接失败:', error.message || error);
+        console.error('DeepSeek API连接失败:', error instanceof Error ? error.message : error);
       }
       // 只在网络错误或其他异常时使用备用回复
       return this.generateFallbackChatResponse(messages, studentContext);

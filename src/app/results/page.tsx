@@ -217,7 +217,7 @@ function ResultsContent() {
     if (combinedResults && !aiExpertEvaluation && !isGeneratingEvaluation) {
       generateAIExpertEvaluation(combinedResults.student, combinedResults.parent)
     }
-  }, [combinedResults, aiExpertEvaluation, isGeneratingEvaluation])
+  }, [combinedResults, aiExpertEvaluation, isGeneratingEvaluation, generateAIExpertEvaluation])
 
   if (loading) {
     return (
