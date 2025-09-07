@@ -21,8 +21,8 @@ interface ChatMessage {
 }
 
 class AIService {
-  private apiKey = process.env.DEEPSEEK_API_KEY || '';
-  private baseUrl = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1/chat/completions';
+  private apiKey = process.env.OPENAI_API_KEY || '';
+  private baseUrl = process.env.OPENAI_BASE_URL || 'https://api.deepseek.com/v1';
 
   // 专家评价生成的系统提示词
   private expertEvaluationPrompt = `你是Jin Qi，一位资深的教育心理学专家，专门研究学生学习动机和认知发展。请基于以下数据为学生提供专业的心理评估和建议。
@@ -190,7 +190,7 @@ ${engagementDiff > 4 ? '• 参与度方面存在认知差异，需要观察学�
 
       const userMessage = `请基于以下详细数据生成专家评价与建议：\n\n**学生基本信息：**\n姓名：${data.student_name}\n\n**ACE动机评估数据：**\n学生自评：\n- 自主性：${data.student_ace.autonomy}/20分\n- 胜任感：${data.student_ace.competence}/20分\n- 参与度：${data.student_ace.engagement}/20分\n\n家长观察：\n- 自主性：${data.parent_ace.autonomy}/20分\n- 胜任感：${data.parent_ace.competence}/20分\n- 参与度：${data.parent_ace.engagement}/20分\n\n**动机类型信息：**\n学生动机类型：${data.student_motivation_type || '待分析'}\n家长认知类型：${data.parent_motivation_type || '待分析'}\n\n**行为观察记录：**\n${data.observation || '无特殊观察记录'}\n\n请严格按照系统提示中的5个部分结构（动机类型分析、认知差异分析、ACE提升建议、亲子沟通策略、行动任务规划），为${data.student_name}生成完整的专家评价报告。`;
 
-      const response = await fetch(this.baseUrl, {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -295,7 +295,7 @@ ${engagementDiff > 4 ? '• 参与度方面存在认知差异，需要观察学�
 
       const systemMessage = this.chatbotPrompt + contextMessage;
 
-      const response = await fetch(this.baseUrl, {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -347,7 +347,7 @@ ${engagementDiff > 4 ? '• 参与度方面存在认知差异，需要观察学�
    */
   async checkConnection(): Promise<boolean> {
     try {
-      const response = await fetch(this.baseUrl, {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
