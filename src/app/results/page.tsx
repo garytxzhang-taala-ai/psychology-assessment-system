@@ -188,7 +188,8 @@ function ResultsContent() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          student_name: currentUser?.name || '学生',
+          student_name: currentUser?.studentName || currentUser?.name || '学生',
+          student_age: currentUser?.studentAge,
           student_ace: studentResult.scores,
           parent_ace: parentResult.scores,
           student_motivation_type: studentResult.motivationType.name,

@@ -229,6 +229,13 @@ export default function AIExpertEvaluation({ evaluation, onRegenerate }: AIExper
           </button>
         </div>
       </div>
+
+      {/* 免责声明 */}
+      <div className="mt-6 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+        <p className="text-sm text-gray-600 leading-relaxed">
+          本评价基于当前数据分析生成，建议结合实际情况灵活调整。如需更深入的个性化指导，欢迎继续与Jin Qi专家进行深度对话。
+        </p>
+      </div>
     </div>
   )
 }

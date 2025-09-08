@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     // 调用AI服务生成专家评价
     const evaluation = await aiService.generateExpertEvaluation({
       student_name: data.student_name,
+      student_age: data.student_age,
       student_ace: data.student_ace,
       parent_ace: data.parent_ace,
       observation: data.observation,
