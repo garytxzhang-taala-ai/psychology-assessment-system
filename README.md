@@ -47,11 +47,21 @@ npm install
 ```
 
 3. 配置环境变量
-创建 `.env.local` 文件并添加以下配置：
+创建 `.env` 文件并添加以下配置：
 ```env
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_BASE_URL=https://api.openai.com/v1
+# AI API配置 (使用DeepSeek API)
+OPENAI_API_KEY=your_deepseek_api_key_here
+OPENAI_BASE_URL=https://api.deepseek.com/v1
+
+# 应用配置
+NEXT_PUBLIC_APP_NAME=心理测评系统
+NEXT_PUBLIC_APP_VERSION=1.0.0
+
+# 部署环境
+NODE_ENV=development
 ```
+
+**注意**：请将 `your_deepseek_api_key_here` 替换为您的实际DeepSeek API密钥。
 
 4. 启动开发服务器
 ```bash
@@ -109,14 +119,44 @@ src/
 ## 部署说明
 
 ### Vercel部署（推荐）
-1. 将代码推送到GitHub
-2. 在Vercel中导入项目
-3. 配置环境变量
-4. 自动部署完成
+
+1. **推送代码到GitHub**
+   ```bash
+   git add .
+   git commit -m "部署准备"
+   git push origin main
+   ```
+
+2. **在Vercel中导入项目**
+   - 访问 [vercel.com](https://vercel.com)
+   - 点击 "New Project"
+   - 从GitHub导入您的仓库
+
+3. **配置环境变量**
+   在Vercel项目设置中添加以下环境变量：
+   ```
+   OPENAI_API_KEY = your_deepseek_api_key_here
+   OPENAI_BASE_URL = https://api.deepseek.com/v1
+   NEXT_PUBLIC_APP_NAME = 心理测评系统
+   NEXT_PUBLIC_APP_VERSION = 1.0.0
+   NODE_ENV = production
+   ```
+
+4. **部署完成**
+   - Vercel会自动检测Next.js项目并进行部署
+   - 部署完成后会提供访问链接
+
+### 环境变量配置重要说明
+
+⚠️ **重要**：由于 `.env` 文件在 `.gitignore` 中被忽略，部署时必须在平台上单独配置环境变量。
+
+- **本地开发**：使用 `.env` 文件
+- **生产部署**：在部署平台（如Vercel）的环境变量设置中配置
 
 ### 其他平台
-- 支持任何支持Next.js的托管平台
-- 确保配置正确的环境变量
+- 支持任何支持Next.js的托管平台（Netlify、Railway等）
+- 确保在部署平台上配置相同的环境变量
+- API超时设置已优化为15秒，适合大多数部署环境
 
 ## 贡献指南
 
