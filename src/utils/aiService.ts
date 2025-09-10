@@ -288,7 +288,63 @@ ${engagementDiff > 4 ? '• 参与度方面存在认知差异，需要观察学�
   }
 
   /**
-   * AI聊天机器人对话
+   * AI聊天机器人对话 - 流式响应版本
+   */
+  async chatWithAIStream(messages: ChatMessage[], studentContext?: any): Promise<ReadableStream<Uint8Array>> {
+    try {
+      // 构建上下文信息
+      let contextMessage = '';
+      if (studentContext) {
+        contextMessage = `\n\n学生背景信息：\n- 姓名：${studentContext.name || ''}\n- ACE得分：自主性${studentContext.scores?.autonomy || 0}分，胜任感${studentContext.scores?.competence || 0}分，参与度${studentContext.scores?.engagement || 0}分\n- 动机类型：${studentContext.motivationType?.name || ''}\n\n请基于这些信息进行个性化指导。`;
+      }
+
+      const systemMessage = this.chatbotPrompt + contextMessage;
+
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        signal: AbortSignal.timeout(30000), // 30秒超时，流式响应需要更长时间
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: systemMessage
+            },
+            ...messages
+          ],
+          max_tokens: 500,
+          temperature: 0.6,
+          stream: true // 启用流式响应
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API请求失败: ${response.status}`);
+      }
+
+      // 返回流式响应
+      return response.body!;
+    } catch (error) {
+      console.error('流式聊天失败:', error);
+      // 创建一个包含错误信息的流
+      const errorMessage = this.generateFallbackChatResponse(messages, studentContext);
+      const encoder = new TextEncoder();
+      return new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({choices: [{delta: {content: errorMessage}}]})}\n\n`));
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
+        }
+      });
+    }
+  }
+
+  /**
+   * AI聊天机器人对话 - 原有的非流式版本
    */
   async chatWithAI(messages: ChatMessage[], studentContext?: any): Promise<string> {
     try {

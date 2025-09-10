@@ -9,6 +9,7 @@ interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: string
+  isStreaming?: boolean
 }
 
 interface QuestionnaireResult {
@@ -31,63 +32,174 @@ interface QuestionnaireResult {
 }
 
 export default function ChatPage() {
-  const router = useRouter()
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const initialMessages: ChatMessage[] = [
+    {
+      id: '1',
+      role: 'assistant',
+      content: '你好！我是Jin Qi，你的学习心理专家。我已经了解了你的ACE动机画像，可以为你提供个性化的学习指导。\n\n有什么学习上的困惑或目标想要讨论吗？',
+      timestamp: new Date().toISOString()
+    }
+  ]
+
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [userResult, setUserResult] = useState<QuestionnaireResult | null>(null)
+  const [useStreaming, setUseStreaming] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  
+  const router = useRouter()
+
   useEffect(() => {
-    // 获取用户测评结果
     const savedResult = localStorage.getItem('questionnaire_result')
     if (savedResult) {
-      const result = JSON.parse(savedResult)
-      setUserResult(result)
-      
-      // 添加欢迎消息
-      const welcomeMessage: ChatMessage = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: `你好！我是Jin Qi，你的学习心理专家 🌟\n\n我看到你已经完成了ACE动机测评，显示你是「${result.motivationType.name}」类型的学习者。我很高兴能陪伴你一起探索学习的乐趣！\n\n我可以帮你：\n• 🎯 发现兴趣与学习的交集\n• 💪 设计有挑战性的小任务\n• 🌈 探索长远目标与学习意义\n\n让我们从一个简单的问题开始：最近有什么事情让你特别好奇或感兴趣的吗？`,
-        timestamp: new Date().toISOString()
+      try {
+        setUserResult(JSON.parse(savedResult))
+      } catch (error) {
+        console.error('解析用户结果失败:', error)
       }
-      setMessages([welcomeMessage])
-    } else {
-      // 没有测评结果时的欢迎消息
-      const welcomeMessage: ChatMessage = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: `你好！我是Jin Qi，你的学习心理专家 🌟\n\n欢迎来到AI深度解读！虽然你还没有完成ACE动机测评，但我依然很高兴能与你交流。\n\n我可以帮你：\n• 🎯 探索学习兴趣和动机\n• 💪 提供学习方法建议\n• 🌈 讨论学习目标和规划\n\n如果你想获得更个性化的指导，建议先完成ACE动机测评。现在，让我们开始聊天吧！有什么想要讨论的吗？`,
-        timestamp: new Date().toISOString()
-      }
-      setMessages([welcomeMessage])
     }
   }, [])
-  
+
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-  
-  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-  
-  const handleSendMessage = async () => {
+  }, [messages])
+
+  // 流式发送消息函数
+  const handleSendMessageStream = async () => {
     if (!inputMessage.trim() || isLoading) return
     
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: inputMessage,
+      content: inputMessage.trim(),
       timestamp: new Date().toISOString()
     }
     
     setMessages(prev => [...prev, userMessage])
-    const currentMessage = inputMessage
     setInputMessage('')
     setIsLoading(true)
     
+    const aiMessageId = (Date.now() + 1).toString()
+    const aiMessage: ChatMessage = {
+      id: aiMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+      isStreaming: true
+    }
+    setMessages(prev => [...prev, aiMessage])
+
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
+
+      const response = await fetch('/api/ai/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(msg => ({
+            role: msg.role,
+            content: msg.content
+          })),
+          userResult
+        }),
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error('网络请求失败')
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      
+      if (!reader) {
+        throw new Error('无法读取响应流')
+      }
+      
+      let accumulatedContent = ''
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) break
+        
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            
+            if (data === '[DONE]') {
+              setMessages(prev => prev.map(msg => 
+                msg.id === aiMessageId 
+                  ? { ...msg, isStreaming: false }
+                  : msg
+              ))
+              setIsLoading(false)
+              return
+            }
+            
+            try {
+              const parsed = JSON.parse(data)
+              const content = parsed.content
+              
+              if (content) {
+                accumulatedContent += content
+                setMessages(prev => prev.map(msg => 
+                  msg.id === aiMessageId 
+                    ? { ...msg, content: accumulatedContent }
+                    : msg
+                ))
+              }
+            } catch (e) {
+              // 忽略解析错误
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('流式发送消息失败:', error)
+      let errorContent = '抱歉，我现在无法回复。请稍后再试。'
+
+      if (error instanceof Error) {
+        if (error.message?.includes('Failed to fetch')) {
+          errorContent = '网络连接异常，请检查网络状态后重试。'
+        } else if (error.name === 'AbortError') {
+          errorContent = '请求超时，请重试。'
+        }
+      }
+      
+      setMessages(prev => prev.map(msg => 
+        msg.id === aiMessageId 
+          ? { ...msg, content: errorContent, isStreaming: false }
+          : msg
+      ))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 普通发送消息函数
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: inputMessage.trim(),
+      timestamp: new Date().toISOString()
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setInputMessage('')
+    setIsLoading(true)
+
     try {
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -96,17 +208,11 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           messages: [...messages, userMessage].map(msg => ({
-            role: msg.role === 'assistant' ? 'assistant' : 'user',
+            role: msg.role,
             content: msg.content
           })),
-          studentContext: userResult ? {
-            name: '学生',
-            motivationType: userResult.motivationType,
-            scores: userResult.scores,
-            weakDimensions: userResult.weakDimensions,
-            suggestions: userResult.suggestions
-          } : null
-        }),
+          userResult
+        })
       })
 
       if (!response.ok) {
@@ -115,60 +221,44 @@ export default function ChatPage() {
 
       const data = await response.json()
       
-      if (data.success) {
-        const aiMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: data.data.message,
-          timestamp: new Date().toISOString()
-        }
-        setMessages(prev => [...prev, aiMessage])
-      } else {
-        throw new Error(data.error || '获取AI回复失败')
+      const aiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.content || '抱歉，我现在无法回复。',
+        timestamp: new Date().toISOString()
       }
+
+      setMessages(prev => [...prev, aiMessage])
     } catch (error) {
       console.error('发送消息失败:', error)
-      let errorContent = '抱歉，我现在无法回复。请稍后再试。'
-
-      if (error instanceof Error) {
-        if (error.message?.includes('Failed to fetch')) {
-          errorContent = '网络连接异常，请检查网络状态后重试。如果问题持续，请刷新页面。'
-        } else if (error.message?.includes('网络请求失败')) {
-          errorContent = '服务暂时不可用，正在使用备用回复。如需完整AI分析，请稍后重试。'
-        }
-      }
-      
       const errorMessage: ChatMessage = {
-         id: (Date.now() + 1).toString(),
-         role: 'assistant',
-         content: errorContent,
-         timestamp: new Date().toISOString()
-       }
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: '抱歉，我现在无法回复。请稍后再试。',
+        timestamp: new Date().toISOString()
+      }
       setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
     }
   }
-  
 
-  
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSendMessage()
+      useStreaming ? handleSendMessageStream() : handleSendMessage()
     }
   }
-  
+
   const quickQuestions = [
     '我最近对什么特别感兴趣？',
     '给我一个有挑战性的小任务',
     '我想探索长远的学习目标',
     '如何找到兴趣与学习的交集？'
   ]
-  
+
   return (
     <div className="min-h-screen flex flex-col">
-      {/* 头部 */}
       <div className="bg-white shadow-sm border-b px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center">
@@ -188,7 +278,6 @@ export default function ChatPage() {
               </div>
             </div>
           </div>
-          
           <button
             onClick={() => router.push('/results')}
             className="flex items-center px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
@@ -198,11 +287,9 @@ export default function ChatPage() {
           </button>
         </div>
       </div>
-      
-      {/* 聊天区域 */}
+
       <div className="flex-1 overflow-hidden">
         <div className="max-w-4xl mx-auto h-full flex flex-col">
-          {/* 消息列表 */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((message) => (
               <div
@@ -210,7 +297,6 @@ export default function ChatPage() {
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div className={`flex max-w-3xl ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                  {/* 头像 */}
                   <div className={`flex-shrink-0 ${message.role === 'user' ? 'ml-3' : 'mr-3'}`}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                       message.role === 'user' 
@@ -225,24 +311,35 @@ export default function ChatPage() {
                     </div>
                   </div>
                   
-                  {/* 消息内容 */}
                   <div className={`px-4 py-3 rounded-2xl ${
                     message.role === 'user'
                       ? 'bg-primary-500 text-white'
                       : 'bg-white shadow-md border'
                   }`}>
-                    <div className="whitespace-pre-wrap">{message.content}</div>
-                    <div className={`text-xs mt-2 ${
+                    <div className="whitespace-pre-wrap">
+                      {message.content}
+                      {message.isStreaming && (
+                        <span className="inline-block w-2 h-5 bg-primary-500 ml-1 animate-pulse" />
+                      )}
+                    </div>
+                    <div className={`text-xs mt-2 flex items-center justify-between ${
                       message.role === 'user' ? 'text-primary-100' : 'text-gray-500'
                     }`}>
-                      {new Date(message.timestamp).toLocaleTimeString()}
+                      <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
+                      {message.isStreaming && (
+                        <span className="text-xs text-primary-500 flex items-center">
+                          <div className="w-1 h-1 bg-primary-500 rounded-full mr-1 animate-bounce" />
+                          <div className="w-1 h-1 bg-primary-500 rounded-full mr-1 animate-bounce" style={{animationDelay: '0.1s'}} />
+                          <div className="w-1 h-1 bg-primary-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}} />
+                          <span className="ml-2">正在生成...</span>
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
             ))}
-            
-            {/* 加载指示器 */}
+
             {isLoading && (
               <div className="flex justify-start">
                 <div className="flex mr-3">
@@ -259,11 +356,10 @@ export default function ChatPage() {
                 </div>
               </div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
-          
-          {/* 快捷问题 */}
+
           {messages.length <= 1 && (
             <div className="px-4 pb-2">
               <div className="text-sm text-gray-600 mb-2">快速开始：</div>
@@ -280,8 +376,7 @@ export default function ChatPage() {
               </div>
             </div>
           )}
-          
-          {/* 输入区域 */}
+
           <div className="p-4 border-t bg-white">
             <div className="flex space-x-3">
               <div className="flex-1">
@@ -295,13 +390,26 @@ export default function ChatPage() {
                   disabled={isLoading}
                 />
               </div>
-              <button
-                onClick={handleSendMessage}
-                disabled={!inputMessage.trim() || isLoading}
-                className="px-6 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-lg hover:from-primary-600 hover:to-secondary-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-              >
-                <Send className="w-5 h-5" />
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setUseStreaming(!useStreaming)}
+                  className={`px-3 py-3 text-sm rounded-lg transition-colors ${
+                    useStreaming 
+                      ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  title={useStreaming ? '流式模式' : '普通模式'}
+                >
+                  {useStreaming ? '🌊' : '📝'}
+                </button>
+                <button
+                  onClick={useStreaming ? handleSendMessageStream : handleSendMessage}
+                  disabled={!inputMessage.trim() || isLoading}
+                  className="px-6 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-lg hover:from-primary-600 hover:to-secondary-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
